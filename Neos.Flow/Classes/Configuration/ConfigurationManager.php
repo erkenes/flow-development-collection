@@ -482,7 +482,7 @@ class ConfigurationManager
     }
 
     /**
-     * Replaces variables (in the format %CONSTANT% or %env:ENVIRONMENT_VARIABLE%)
+     * Replaces variables (in the format %CONSTANT%, %env:ENVIRONMENT_VARIABLE% or %file:%PATH_TO_FILE%)
      * in the given php exported configuration string.
      *
      * This is applied before caching to allow runtime evaluation of constants and environment variables.
@@ -500,7 +500,7 @@ class ConfigurationManager
             |                                  # or
             (?:(?P<prefix>[a-z]+)\:)           # a prefix followed by : (like "env:")
             )?
-            (?P<name>[A-Z_0-9]+))              # the actual variable name in all upper
+            (?P<name>[A-Za-z_0-9\/]+))         # the actual variable name in all upper
             %)                                 # concluded by %
             (?<endString>[^%]*?(?:\',\n)?)?    # optionally concluding a string
         /mx', function ($matchGroup) {
@@ -513,6 +513,8 @@ class ConfigurationManager
 
             if (isset($matchGroup['prefix']) && $matchGroup['prefix'] === 'env') {
                 $replacement .= "getenv('" . $matchGroup['name'] . "')";
+            } elseif (isset($matchGroup['prefix']) && $matchGroup['prefix'] === 'file') {
+                $replacement .= "trim(file_get_contents('" . $matchGroup['name'] . "'))";
             } elseif (isset($matchGroup['expression'])) {
                 $replacement .= "(defined('" . $matchGroup['expression'] . "') ? constant('" . $matchGroup['expression'] . "') : null)";
             }
